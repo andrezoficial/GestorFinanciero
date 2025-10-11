@@ -1,16 +1,30 @@
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./connection/db/db');
+const authRoutes = require('./routes/auth.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
-    sequelize.authenticate()
-        .then(() => console.log('Base de datos conectada'))
-        .catch(error => console.error('Error al conectar la base de datos:', error));
+// Rutas
+app.use('/api/auth', authRoutes);
+
+// Ruta de prueba
+app.get('/api/test', (req, res) => {
+    res.json({ message: 'API funcionando correctamente' });
+});
+
+app.listen(PORT, async () => {
+    try {
+        // Sincronizar modelos con la base de datos
+        await sequelize.sync({ force: false });
+        console.log('Base de datos sincronizada');
+        console.log(`Servidor corriendo en puerto ${PORT}`);
+    } catch (error) {
+        console.error('Error al iniciar el servidor:', error);
+    }
 });
