@@ -2,7 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const sequelize = require('./connection/db/db');
 const authRoutes = require('./routes/auth.routes');
-
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./docs/swagger');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -28,3 +29,5 @@ app.listen(PORT, async () => {
         console.error('Error al iniciar el servidor:', error);
     }
 });
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
