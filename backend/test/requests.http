@@ -1,0 +1,33 @@
+### Variables globales
+@baseUrl = http://localhost:3001/api
+@authToken = 
+
+### Test de conexión
+GET {{baseUrl}}/test
+Content-Type: application/json
+
+### Registro de usuario
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "nombre": "Juan",
+    "apellido": "Pérez",
+    "email": "juan@example.com",
+    "password": "123456",
+    "telefono": "1234567890"
+}
+
+### Login de usuario
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "juan@example.com",
+    "password": "123456"
+}
+
+### Ejemplo de ruta protegida (guardar el token de la respuesta de login en @authToken)
+GET {{baseUrl}}/protected-route
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
