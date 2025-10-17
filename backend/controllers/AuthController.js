@@ -1,90 +1,45 @@
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Usuario = require('../models/Usuario');
 
-// Configuración para bcrypt y jwt
-const SALT_ROUNDS = 10;
-const JWT_SECRET = process.env.JWT_SECRET || 'tu_secret_key';
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+const JWT_EXPIRES = process.env.JWT_EXPIRES || '24h';
+
+const sign = (user) =>
+  jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 
 class AuthController {
-    // Registro de nuevo usuario
-    static async register(userData) {
-        try {
-            // Hashear la contraseña
-            const hashedPassword = await bcrypt.hash(userData.password, SALT_ROUNDS);
-            
-            // Crear usuario con contraseña hasheada
-            const usuario = await Usuario.create({
-                ...userData,
-                password: hashedPassword
-            });
+  // Registro (hash lo hace el modelo via hooks)
+  static async register(data) {
+    // normaliza email (el hook también lo hace, esto es extra safe si cambias el modelo)
+    const payload = { ...data, email: (data.email || '').trim().toLowerCase() };
 
-            // Generar token
-            const token = jwt.sign(
-                { id: usuario.id, email: usuario.email },
-                JWT_SECRET,
-                { expiresIn: '24h' }
-            );
+    const usuario = await Usuario.create(payload);
+    const token = sign(usuario);
+    return { usuario: usuario.toJSON(), token };
+  }
 
-            // Retornar usuario (sin contraseña) y token
-            const { password, ...usuarioSinPassword } = usuario.toJSON();
-            return {
-                usuario: usuarioSinPassword,
-                token
-            };
-        } catch (error) {
-            throw new Error('Error al registrar usuario: ' + error.message);
-        }
-    }
+  // Login
+  static async login(email, password) {
+    const correo = (email || '').trim().toLowerCase();
+    const usuario = await Usuario.scope(null).findOne({ where: { email: correo } }); // scope(null) para incluir password en memoria
 
-    // Login de usuario
-    static async login(email, password) {
-        try {
-            // Buscar usuario
-            const usuario = await Usuario.findOne({ where: { email } });
-            if (!usuario) {
-                throw new Error('Usuario no encontrado');
-            }
+    if (!usuario) throw new Error('Usuario no encontrado');
 
-            // Verificar contraseña
-            const passwordValida = await bcrypt.compare(password, usuario.password);
-            if (!passwordValida) {
-                throw new Error('Contraseña incorrecta');
-            }
+    const ok = await usuario.validarPassword(password);
+    if (!ok) throw new Error('Contraseña incorrecta');
 
-            // Generar token
-            const token = jwt.sign(
-                { id: usuario.id, email: usuario.email },
-                JWT_SECRET,
-                { expiresIn: '24h' }
-            );
+    const token = sign(usuario);
+    return { usuario: usuario.toJSON(), token };
+  }
 
-            // Retornar usuario (sin contraseña) y token
-            const { password: _, ...usuarioSinPassword } = usuario.toJSON();
-            return {
-                usuario: usuarioSinPassword,
-                token
-            };
-        } catch (error) {
-            throw new Error('Error en login: ' + error.message);
-        }
-    }
-
-    // Verificar token
-    static async verificarToken(token) {
-        try {
-            const decoded = jwt.verify(token, JWT_SECRET);
-            const usuario = await Usuario.findByPk(decoded.id);
-            
-            if (!usuario) {
-                throw new Error('Usuario no encontrado');
-            }
-
-            return decoded;
-        } catch (error) {
-            throw new Error('Token inválido');
-        }
-    }
+  // Verificar token
+  static async verificarToken(token) {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    // comprobamos que el usuario existe
+    const usuario = await Usuario.findByPk(decoded.id);
+    if (!usuario) throw new Error('Usuario no encontrado');
+    return decoded;
+  }
 }
 
 module.exports = AuthController;

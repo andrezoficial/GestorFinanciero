@@ -1,24 +1,19 @@
 const AuthController = require('../controllers/AuthController');
 
 const authMiddleware = async (req, res, next) => {
-    try {
-        // Obtener token del header
-        const token = req.headers.authorization?.split(' ')[1];
-        
-        if (!token) {
-            return res.status(401).json({ error: 'Token no proporcionado' });
-        }
-
-        // Verificar token
-        const decoded = await AuthController.verificarToken(token);
-        
-        // Agregar usuario decodificado a la request
-        req.usuario = decoded;
-        
-        next();
-    } catch (error) {
-        return res.status(401).json({ error: 'Token inválido' });
+  try {
+    const auth = req.headers.authorization || '';
+    const [scheme, token] = auth.split(' ');
+    if (scheme?.toLowerCase() !== 'bearer' || !token) {
+      return res.status(401).json({ error: 'Token no proporcionado' });
     }
+
+    const decoded = await AuthController.verificarToken(token);
+    req.user = { id: decoded.id, email: decoded.email }; // limpio
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Token inválido o expirado' });
+  }
 };
 
 module.exports = authMiddleware;
