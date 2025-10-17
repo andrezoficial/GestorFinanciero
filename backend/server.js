@@ -13,6 +13,7 @@ require('./models/Usuario');
 require('./models/Categoria');
 require('./models/Cuenta');
 require('./models/Transaccion');
+require('./models/Presupuesto');
 
 // Middlewares
 app.use(cors());
@@ -22,6 +23,7 @@ app.use(express.json());
 app.use('/api/categorias', require('./routes/categorias.routes'));
 app.use('/api/cuentas', require('./routes/cuentas.routes'));
 app.use('/api/transacciones', require('./routes/transacciones.routes'));
+app.use('/api/presupuestos', require('./routes/presupuestos.routes'));
 app.use('/api/auth', authRoutes);
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
